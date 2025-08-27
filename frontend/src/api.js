@@ -1,53 +1,88 @@
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+// src/api.js
+import axios from "axios";
 
-export const getProducts = async () => (await fetch(`${API}/api/products`)).json();
-export const getProduct = async (id) => (await fetch(`${API}/api/products/${id}`)).json();
+// Base URL: strip trailing slash if present
+const baseURL = (import.meta.env.VITE_API_URL || "http://localhost:8080").replace(/\/+$/, "");
 
-export const register = async (payload) => (await fetch(`${API}/api/auth/register`, {
-  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-})).json();
+// Create axios instance
+export const api = axios.create({
+  baseURL, // now always like: https://your-api.onrender.com
+  // withCredentials: true, // uncomment if you use cookies
+});
 
-export const login = async (payload) => (await fetch(`${API}/api/auth/login`, {
-  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-})).json();
+// ------------------------- Products -------------------------
 
-export const createOrder = async (token, payload) => (await fetch(`${API}/api/orders`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-  body: JSON.stringify(payload)
-})).json();
+export const getProducts = async () => {
+  const res = await api.get("/api/products");
+  return res.data;
+};
 
-export const myOrders = async (token) => (await fetch(`${API}/api/orders/mine`, {
-  headers: { Authorization: `Bearer ${token}` }
-})).json();
+export const getProduct = async (id) => {
+  const res = await api.get(`/api/products/${id}`);
+  return res.data;
+};
 
-export const createProduct = async (token, payload) =>
-  (await fetch(`${API}/api/products`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify(payload)
-  })).json();
+// ------------------------- Auth -------------------------
 
-export const updateProduct = async (token, id, payload) =>
-  (await fetch(`${API}/api/products/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify(payload)
-  })).json();
+export const register = async (payload) => {
+  const res = await api.post("/api/auth/register", payload);
+  return res.data;
+};
 
-export const deleteProduct = async (token, id) =>
-  (await fetch(`${API}/api/products/${id}`, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` }
-  })).json();
+export const login = async (payload) => {
+  const res = await api.post("/api/auth/login", payload);
+  return res.data;
+};
 
+// ------------------------- Orders -------------------------
+
+export const createOrder = async (token, payload) => {
+  const res = await api.post("/api/orders", payload, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+};
+
+export const myOrders = async (token) => {
+  const res = await api.get("/api/orders/mine", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+};
+
+// ------------------------- Products (admin) -------------------------
+
+export const createProduct = async (token, payload) => {
+  const res = await api.post("/api/products", payload, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+};
+
+export const updateProduct = async (token, id, payload) => {
+  const res = await api.put(`/api/products/${id}`, payload, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+};
+
+export const deleteProduct = async (token, id) => {
+  const res = await api.delete(`/api/products/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+};
+
+// ------------------------- Upload -------------------------
+
+// src/api.js (keep axios instance from before)
 export const uploadImage = async (token, file) => {
   const form = new FormData();
-  form.append('image', file);
-  const res = await fetch(`${API}/api/upload/image`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` }, // do NOT set Content-Type
-    body: form
+  form.append("image", file);
+
+  const res = await api.post("/api/upload/image", form, {
+    headers: { Authorization: `Bearer ${token}` }, // admin token required
   });
-  return res.json();
+
+  return res.data; // { url, filename }
 };
